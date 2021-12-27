@@ -21,7 +21,7 @@ campsiteRouter.route('/')
     // create() creates new campsite doc and saves to mongodb server
     Campsite.create(req.body)
     .then(campsite => {
-        console.log('Campsite Created ', campsite)
+        console.log('Campsite Created ', campsite);
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
         res.json(campsite);
