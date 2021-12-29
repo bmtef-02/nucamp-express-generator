@@ -40,38 +40,52 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(cookieParser('12345-67890-09876-54321'));   // cookParser has a secret key - using a signed cookie
 
 // basic authentication using a custom middleware function
 function auth(req, res, next) {
-    console.log(req.headers);
-    const authHeader = req.headers.authorization;
+
+    // signedCookies auto parse a signed cookie from the request
+    if (!req.signedCookies.user) {
+        const authHeader = req.headers.authorization;
     
-    // checks if received any authentication
-    if (!authHeader) {
-        const err = new Error('You are not authenticated!');
+        // checks if received any authentication
+        if (!authHeader) {
+            const err = new Error('You are not authenticated!');
 
-        // lets the client know the server requests basic authentiation
-        res.setHeader('WWW-Authenticate', 'Basic');
-        
-        err.status = 401;
-        return next(err);
-    }
+            // lets the client know the server requests basic authentiation
+            res.setHeader('WWW-Authenticate', 'Basic');
+            
+            err.status = 401;
+            return next(err);
+        }
 
-    // method parses authHeader for username and password and storeds in the auth array
-    const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-    const user = auth[0];
-    const pass = auth[1];
+        // method parses authHeader for username and password and storeds in the auth array
+        const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
+        const user = auth[0];
+        const pass = auth[1];
 
-    if (user === 'admin' && pass === 'password') {
-        
-        // authorized and pass control to next middleware function
-        return next();
+        if (user === 'admin' && pass === 'password') {
+
+            // set up a signed cookie
+            res.cookie('user', 'admin', {signed: true})
+            
+            // authorized and pass control to next middleware function
+            return next();
+        } else {
+            const err = new Error('You are not authenticated!');
+            res.setHeader('WWW-Authenticate', 'Basic');
+            err.status = 401;
+            return next(err);
+        }
     } else {
-        const err = new Error('You are not authenticated!');
-        res.setHeader('WWW-Authenticate', 'Basic');
-        err.status = 401;
-        return next(err);
+        if (req.signedCookies.user === 'admin') {
+            return next();
+        } else {
+            const err = new Error('You are not authenticated!');
+            err.status = 401;
+            return next(err);
+        }
     }
 }
 
