@@ -58,46 +58,21 @@ app.use(session({
     store: new FileStore()
 }));
 
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+
 // basic authentication using a custom middleware function
 function auth(req, res, next) {
 
     console.log(req.session);
 
-    // checks if request has session property from express-session
+    // checks if request has session with a user field
     if (!req.session.user) {
-        const authHeader = req.headers.authorization;
-    
-        // checks if received any authentication
-        if (!authHeader) {
-            const err = new Error('You are not authenticated!');
-
-            // lets the client know the server requests basic authentiation
-            res.setHeader('WWW-Authenticate', 'Basic');
-            
-            err.status = 401;
-            return next(err);
-        }
-
-        // method parses authHeader for username and password and storeds in the auth array
-        const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-        const user = auth[0];
-        const pass = auth[1];
-
-        if (user === 'admin' && pass === 'password') {
-
-            // save to the session that the username is 'admin'
-            req.session.user = 'admin';
-            
-            // authorized and pass control to next middleware function
-            return next();
-        } else {
-            const err = new Error('You are not authenticated!');
-            res.setHeader('WWW-Authenticate', 'Basic');
-            err.status = 401;
-            return next(err);
-        }
+        const err = new Error('You are not authenticated!');
+        err.status = 401;
+        return next(err);
     } else {
-        if (req.session.user === 'admin') {
+        if (req.session.user === 'authenticated') {
             return next();
         } else {
             const err = new Error('You are not authenticated!');
@@ -105,14 +80,12 @@ function auth(req, res, next) {
             return next(err);
         }
     }
-}
+};
 
-app.use(auth);
+app.use(auth); // anything below this must require authentication
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/campsites', campsiteRouter);
 app.use('/promotions', promotionRouter);
 app.use('/partners', partnerRouter);
