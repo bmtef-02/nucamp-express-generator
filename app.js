@@ -7,6 +7,9 @@ const session = require('express-session');
 
 // this is returning another function as it's return value and we call the session function with the 2nd parameter
 const FileStore = require('session-file-store')(session);
+const passport = require('passport');
+const authenticate = require('./authenticate');
+
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -58,27 +61,27 @@ app.use(session({
     store: new FileStore()
 }));
 
+// middleware functions from passport required for sessions
+// checks incoming request for existing sessions. If there is a session, session data loads into request as req.user
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
 // basic authentication using a custom middleware function
 function auth(req, res, next) {
 
-    console.log(req.session);
+    // req.user holds session data
+    console.log(req.user);
 
     // checks if request has session with a user field
-    if (!req.session.user) {
+    if (!req.user) {
         const err = new Error('You are not authenticated!');
         err.status = 401;
         return next(err);
     } else {
-        if (req.session.user === 'authenticated') {
-            return next();
-        } else {
-            const err = new Error('You are not authenticated!');
-            err.status = 401;
-            return next(err);
-        }
+        return next();
     }
 };
 
