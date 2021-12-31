@@ -3,8 +3,16 @@ const passportLocalMongoose = require('passport-local-mongoose');
 const Schema = mongoose.Schema;
 
 const userSchema = new Schema({
-
     // don't need username or password b/c passport-local-mongoose auto adds them, hashing, and salting them
+    
+    firstname: {
+        type: String,
+        default: ''
+    },
+    lastname: {
+        type: String,
+        default: ''
+    },
     admin: {
         type: Boolean,
         default: false

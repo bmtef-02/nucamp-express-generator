@@ -9,6 +9,7 @@ const campsiteRouter = express.Router();
 campsiteRouter.route('/')
 .get((req, res, next) => {
     Campsite.find()
+    .populate('comments.author')    // populates the author field of the comments subdoc
     .then(campsites => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
@@ -49,6 +50,7 @@ campsiteRouter.route('/')
 campsiteRouter.route('/:campsiteId')
 .get((req, res, next) => {
     Campsite.findById(req.params.campsiteId)
+    .populate('comments.author')    // populates the author field of the comments subdoc
     .then(campsite => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
@@ -86,6 +88,7 @@ campsiteRouter.route('/:campsiteId/comments')
     
     // find specific campsite to GET
     Campsite.findById(req.params.campsiteId)
+    .populate('comments.author')    // populates the author field of the comments subdoc
     .then(campsite => {
         
         // makes sure specific campsite isn't null
@@ -110,6 +113,9 @@ campsiteRouter.route('/:campsiteId/comments')
     Campsite.findById(req.params.campsiteId)
     .then(campsite => {
         if (campsite) {
+
+            // saves the id of current user to the request body as the author
+            req.body.author = req.user._id;
 
             // pushes new comment to comments array. req.body has the new comment in it
             campsite.comments.push(req.body);
@@ -164,6 +170,7 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
     
     // find specific campsite to GET
     Campsite.findById(req.params.campsiteId)
+    .populate('comments.author')    // populates the author field of the comments subdoc
     .then(campsite => {
         
         // makes sure specific campsite and comment isn't null
