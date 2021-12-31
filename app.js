@@ -1,14 +1,9 @@
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
-var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-const session = require('express-session');
-
-// this is returning another function as it's return value and we call the session function with the 2nd parameter
-const FileStore = require('session-file-store')(session);
 const passport = require('passport');
-const authenticate = require('./authenticate');
+const config = require('./config');
 
 
 var indexRouter = require('./routes/index');
@@ -20,7 +15,7 @@ const partnerRouter = require('./routes/partnerRouter');
 const mongoose = require('mongoose');
 
 // sets up connection to nucampsiteServer in the mongodb server
-const url = 'mongodb://localhost:27017/nucampsite';
+const url = config.mongoUrl;
 
 // connects mongodb client to nucampsiteServer
 const connect = mongoose.connect(url, {
@@ -48,44 +43,11 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// don't need cookieParser anymore b/c using express-session
-// app.use(cookieParser('12345-67890-09876-54321'));   // cookParser has a secret key - using a signed cookie
-
-app.use(session({
-    name: 'session-id',
-    secret: '12345-67890-09876-54321',
-    saveUninitialized: false,
-    resave: false,
-
-    // creates new FileStore as object that we use to save session info to server's hard disk
-    store: new FileStore()
-}));
-
-// middleware functions from passport required for sessions
-// checks incoming request for existing sessions. If there is a session, session data loads into request as req.user
+// middleware required to initialize Passport
 app.use(passport.initialize());
-app.use(passport.session());
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-
-// basic authentication using a custom middleware function
-function auth(req, res, next) {
-
-    // req.user holds session data
-    console.log(req.user);
-
-    // checks if request has session with a user field
-    if (!req.user) {
-        const err = new Error('You are not authenticated!');
-        err.status = 401;
-        return next(err);
-    } else {
-        return next();
-    }
-};
-
-app.use(auth); // anything below this must require authentication
 
 app.use(express.static(path.join(__dirname, 'public')));
 

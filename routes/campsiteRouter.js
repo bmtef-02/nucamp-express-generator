@@ -1,6 +1,9 @@
 const express = require('express');
 const Campsite = require('../models/campsite');
 
+// require this so we can use the verifyUser function on each endpoint except GET
+const authenticate = require('../authenticate');
+
 const campsiteRouter = express.Router();
 
 campsiteRouter.route('/')
@@ -16,7 +19,7 @@ campsiteRouter.route('/')
     // next() pass off err to Express error handler. Express will handle the error
     .catch(err => next(err));
 })
-.post((req, res, next) => {
+.post(authenticate.verifyUser, (req, res, next) => {
     
     // create() creates new campsite doc and saves to mongodb server
     Campsite.create(req.body)
@@ -28,11 +31,11 @@ campsiteRouter.route('/')
     })
     .catch(err => next(err));
 })  // when this campsite gets posted to the database, the database will assign an ID to the campsite
-.put((req, res) => {
+.put(authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
     res.end('PUT operation not supported on /campsites');
 })  // not supported b/c it doesn't make sense to update all campsites at the same time
-.delete((req, res, next) => {
+.delete(authenticate.verifyUser, (req, res, next) => {
     // deletes all documents in campsite collection
     Campsite.deleteMany()
     .then(response => {
@@ -53,11 +56,11 @@ campsiteRouter.route('/:campsiteId')
     })
     .catch(err => next(err));
 })
-.post((req, res) => {
+.post(authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
     res.end(`POST operation not supported on /campsites/${req.params.campsiteId}`);
 })  // not supported b/c the ID that the database assigns to a campsite doesn't exist until the campsite is posted
-.put((req, res, next) => {
+.put(authenticate.verifyUser, (req, res, next) => {
     Campsite.findByIdAndUpdate(req.params.campsiteId, {
         $set: req.body
     }, { new: true }) // this will return the updated document
@@ -68,7 +71,7 @@ campsiteRouter.route('/:campsiteId')
     })
     .catch(err => next(err));
 })  // this is supported b/c it makes sense to update a specific campsite by their ID
-.delete((req, res, next) => {
+.delete(authenticate.verifyUser, (req, res, next) => {
     Campsite.findByIdAndDelete(req.params.campsiteId)
     .then(response => {
         res.statusCode = 200;
@@ -101,7 +104,7 @@ campsiteRouter.route('/:campsiteId/comments')
     // next() pass off err to Express error handler. Express will handle the error
     .catch(err => next(err));
 })
-.post((req, res, next) => {
+.post(authenticate.verifyUser, (req, res, next) => {
     
     // find specific campsite to add new comment
     Campsite.findById(req.params.campsiteId)
@@ -127,11 +130,11 @@ campsiteRouter.route('/:campsiteId/comments')
     })
     .catch(err => next(err));
 }) // when new comment gets saved to database, auto gives comment unique id
-.put((req, res) => {
+.put(authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
     res.end(`PUT operation not supported on /campsites/${req.params.campsiteId}/comments`);
 })  // not supported b/c it doesn't make sense to update all comments at the same time
-.delete((req, res, next) => {
+.delete(authenticate.verifyUser, (req, res, next) => {
     Campsite.findById(req.params.campsiteId)
     .then(campsite => {
         if (campsite) {
@@ -183,11 +186,11 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
     // next() pass off err to Express error handler. Express will handle the error
     .catch(err => next(err));
 })
-.post((req, res) => {
+.post(authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
     res.end(`POST operation is not supported on /campsites/${req.params.campsiteId}/comments/${req.params.commentId}`);
 })
-.put((req, res, next) => {
+.put(authenticate.verifyUser, (req, res, next) => {
     
     // find specific campsite to GET
     Campsite.findById(req.params.campsiteId)
@@ -225,7 +228,7 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
     // next() pass off err to Express error handler. Express will handle the error
     .catch(err => next(err));
 })
-.delete((req, res, next) => {
+.delete(authenticate.verifyUser, (req, res, next) => {
     Campsite.findById(req.params.campsiteId)
     .then(campsite => {
         // makes sure specific campsite and comment isn't null
