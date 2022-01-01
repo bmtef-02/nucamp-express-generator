@@ -8,8 +8,17 @@ const router = express.Router();
 
 
 /* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
+router.get('/', authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+    User.find()
+    .then(users => {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        
+        // sends json data to client in response stream and auto closes response stream. Replaces res.end
+        res.json(users);
+    })
+    // next() pass off err to Express error handler. Express will handle the error
+    .catch(err => next(err));
 });
 
 // /users/signup endpoint allows new user to register using passport-local-mongoose
