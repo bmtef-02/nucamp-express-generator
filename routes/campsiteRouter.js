@@ -167,12 +167,12 @@ campsiteRouter.route('/:campsiteId/comments')
 
 campsiteRouter.route('/:campsiteId/comments/:commentId')
 .get((req, res, next) => {
-    
+
     // find specific campsite to GET
     Campsite.findById(req.params.campsiteId)
     .populate('comments.author')    // populates the author field of the comments subdoc
     .then(campsite => {
-        
+
         // makes sure specific campsite and comment isn't null
         if (campsite && campsite.comments.id(req.params.commentId)) {
             res.statusCode = 200;
@@ -205,23 +205,31 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
         
         // makes sure specific campsite and comment isn't null
         if (campsite && campsite.comments.id(req.params.commentId)) {
-            
-            // checks for a new rating 
-            if (req.body.rating) {
-                campsite.comments.id(req.params.commentId).rating = req.body.rating;
-            }
 
-            // checks for a new text
-            if (req.body.text) {
-                campsite.comments.id(req.params.commentId).text = req.body.text;
+            // checks if user _id matches the comment's author _id
+            if (campsite.comments.id(req.params.commentId).author._id.equals(req.user._id)) {
+                
+                // checks for a new rating 
+                if (req.body.rating) {
+                    campsite.comments.id(req.params.commentId).rating = req.body.rating;
+                }
+
+                // checks for a new text
+                if (req.body.text) {
+                    campsite.comments.id(req.params.commentId).text = req.body.text;
+                }
+                campsite.save()
+                .then(campsite => {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.json(campsite);
+                })
+                .catch(err => next(err));
+            } else {
+                err = new Error('You cannot change a comment you are not the author of!');
+                err.status = 403;
+                return next(err);
             }
-            campsite.save()
-            .then(campsite => {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(campsite);
-            })
-            .catch(err => next(err));
         } else if (!campsite) {
             err = new Error(`Campsite ${req.params.campsiteId} not found`);
             err.status = 404;
@@ -240,14 +248,24 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
     .then(campsite => {
         // makes sure specific campsite and comment isn't null
         if (campsite && campsite.comments.id(req.params.commentId)) {
-            campsite.comments.id(req.params.commentId).remove();
-            campsite.save()
-            .then(campsite => {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(campsite);
-            })
-            .catch(err => next(err));
+
+            // checks if user _id matches the comment's author _id
+            if (campsite.comments.id(req.params.commentId).author._id.equals(req.user._id)) {
+                campsite.comments.id(req.params.commentId).remove();
+                campsite.save()
+                .then(campsite => {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.json(campsite);
+                })
+                .catch(err => next(err));
+            } else {
+                err = new Error('You cannot delete a comment you are not the author of!');
+                err.status = 403;
+                return next(err);
+            }
+
+            
         } else if (!campsite) {
             err = new Error(`Campsite ${req.params.campsiteId} not found`);
             err.status = 404;
