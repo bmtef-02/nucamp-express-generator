@@ -11,6 +11,7 @@ const ExtractJwt = require('passport-jwt').ExtractJwt;  // provides many functio
 const jwt = require('jsonwebtoken');    // node module used to create, sign, verify tokens
 
 const config = require('./config.js');
+const FacebookTokenStrategy = require('passport-facebook-token');
 
 // passport.use() - passport is using the strategy LocalStrategy
 // LocalStrategy is a constructor that takes a verifyCallback function
@@ -68,3 +69,34 @@ exports.verifyAdmin = (req, res, next) => {
         return next(err);
     }
 }
+
+exports.facebookPassport = passport.use(
+    new FacebookTokenStrategy(
+        {
+            clientID: config.facebook.clientId,
+            clientSecret: config.facebook.clientSecret
+        }, 
+        (accessToken, refreshToken, profile, done) => {
+            User.findOne({facebookId: profile.id}, (err, user) => {
+                if (err) {
+                    return done(err, false);
+                }
+                if (!err && user) {
+                    return done(null, user);
+                } else {
+                    user = new User({ username: profile.displayName });
+                    user.facebookId = profile.id;
+                    user.firstname = profile.name.givenName;
+                    user.lastname = profile.name.familyName;
+                    user.save((err, user) => {
+                        if (err) {
+                            return done(err, false);
+                        } else {
+                            return done(null, user);
+                        }
+                    });
+                }
+            });
+        }
+    )
+);
