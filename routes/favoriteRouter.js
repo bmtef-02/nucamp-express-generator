@@ -1,5 +1,6 @@
 const express = require('express');
 const Favorite = require('../models/favorite');
+const Campsite = require('../models/campsite');
 const authenticate = require('../authenticate');
 const cors = require('./cors');
 
@@ -80,35 +81,48 @@ favoriteRouter.route('/:campsiteId')
     res.end(`GET operation not supported on /favorites/${req.params.campsiteId}`)
 })
 .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
-    Favorite.findOne({ user: req.user._id })
-    .then(favorites => {
-        if (favorites) { // if the favorites doc exists
-            if (favorites.campsites.includes(req.params.campsiteId)) {  // if the campsite is already a favorite
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'text/plain');
-                res.end('That campsite is already in the list of favorites!')
-            } else {    // if the campsite is not a favorite
-                favorites.campsites.push(req.params.campsiteId);
-                favorites.save()
-                .then(favorites => {
-                    res.statusCode = 200;
-                    res.setHeader('Content-Type', 'application/json');
-                    res.json(favorites);
-                })
-                .catch(err => next(err));
-            }
-        } else {    // if the favorites doc doesn't exist
-            Favorite.create({
-                user: req.user._id,
-                campsites: [req.params.campsiteId]
-            })
+    Campsite.findOne({ _id: req.params.campsiteId })     // checks if campsiteId exists
+    .then(campsite => {
+        res.statusCode = 200;
+
+        if (campsite) {     // if campsite exists (is not null)
+            
+            Favorite.findOne({ user: req.user._id })
             .then(favorites => {
-                console.log('Favorite Document Created ', favorites);
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(favorites);
+                if (favorites) { // if the favorites doc exists
+        
+                    if (favorites.campsites.includes(req.params.campsiteId)) {  // if the campsite is already a favorite
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'text/plain');
+                        res.end('That campsite is already in the list of favorites!')
+                    } else {    // if the campsite is not a favorite
+                        favorites.campsites.push(req.params.campsiteId);
+                        favorites.save()
+                        .then(favorites => {
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.json(favorites);
+                        })
+                        .catch(err => next(err));
+                    }
+                } else {    // if the favorites doc doesn't exist
+                    Favorite.create({
+                        user: req.user._id,
+                        campsites: [req.params.campsiteId]
+                    })
+                    .then(favorites => {
+                        console.log('Favorite Document Created ', favorites);
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.json(favorites);
+                    })
+                    .catch(err => next(err));
+                }
             })
             .catch(err => next(err));
+        } else {    // if campsite doesn't exist (is null)
+            res.setHeader('Content-Type', 'text/plain');
+            res.end(`Campsite ${req.params.campsiteId} does not exist`);
         }
     })
     .catch(err => next(err));
